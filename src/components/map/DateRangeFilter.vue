@@ -1,14 +1,28 @@
 <template>
 	<div id="dateRangeFilter">
 		<NcDateTimePicker
-			type="date-range"
-			:model-value="pickerValue"
+			class="date-range-filter-picker"
+			type="date"
+			:model-value="startValue"
 			:min="minDate"
+			:max="startMaxDate"
+			:clearable="false"
+			:append-to-body="true"
+			:placeholder="t('maps', 'From')"
+			:aria-label="t('maps', 'Time filter start date')"
+			@update:model-value="onStartChange" />
+		<span class="date-range-filter-separator">–</span>
+		<NcDateTimePicker
+			class="date-range-filter-picker"
+			type="date"
+			:model-value="endValue"
+			:min="endMinDate"
 			:max="maxDate"
 			:clearable="false"
 			:append-to-body="true"
-			:aria-label="t('maps', 'Time filter date range')"
-			@update:model-value="onPickerChange" />
+			:placeholder="t('maps', 'To')"
+			:aria-label="t('maps', 'Time filter end date')"
+			@update:model-value="onEndChange" />
 		<NcButton
 			:aria-label="t('maps', 'Show all dates')"
 			:title="t('maps', 'Show all dates')"
@@ -51,45 +65,73 @@ export default {
 	emits: ['range-change'],
 
 	computed: {
+		// the filter can be wider than the data (e.g. 0 when "everything" is selected), keep display inside the data range
+		displayStart() {
+			return Math.min(Math.max(this.start, this.rangeMin), this.rangeMax)
+		},
+		displayEnd() {
+			return Math.max(Math.min(this.end, this.rangeMax), this.displayStart)
+		},
+		startValue() {
+			return new Date(this.displayStart * 1000)
+		},
+		endValue() {
+			return new Date(this.displayEnd * 1000)
+		},
 		// first selectable day (dates before are grayed out)
 		minDate() {
-			const d = new Date(this.rangeMin * 1000)
-			d.setHours(0, 0, 0, 0)
-			return d
+			return startOfDay(this.rangeMin)
 		},
 		// last selectable day (dates after are grayed out)
 		maxDate() {
-			const d = new Date(this.rangeMax * 1000)
-			d.setHours(23, 59, 59, 999)
-			return d
+			return endOfDay(this.rangeMax)
 		},
-		pickerValue() {
-			// the filter can be wider than the data (e.g. 0 when "everything" is selected), keep display inside the data range
-			const start = Math.min(Math.max(this.start, this.rangeMin), this.rangeMax)
-			const end = Math.max(Math.min(this.end, this.rangeMax), start)
-			return [new Date(start * 1000), new Date(end * 1000)]
+		// start can not be after the selected end day
+		startMaxDate() {
+			return endOfDay(this.displayEnd)
+		},
+		// end can not be before the selected start day
+		endMinDate() {
+			return startOfDay(this.displayStart)
 		},
 	},
 
 	methods: {
-		onPickerChange(dates) {
-			if (!Array.isArray(dates) || !dates[0] || !dates[1]) {
+		// whole days, in local time: start day 00:00:00, end day 23:59:59
+		onStartChange(date) {
+			if (!date) {
 				return
 			}
-			// whole days, in local time: first day 00:00:00 to last day 23:59:59
-			const startDate = new Date(dates[0])
-			startDate.setHours(0, 0, 0, 0)
-			const endDate = new Date(dates[1])
-			endDate.setHours(23, 59, 59, 999)
 			this.$emit('range-change', {
-				start: Math.floor(startDate.getTime() / 1000),
-				end: Math.floor(endDate.getTime() / 1000),
+				start: Math.floor(startOfDay(date.getTime() / 1000).getTime() / 1000),
+				end: this.end,
+			})
+		},
+		onEndChange(date) {
+			if (!date) {
+				return
+			}
+			this.$emit('range-change', {
+				start: this.start,
+				end: Math.floor(endOfDay(date.getTime() / 1000).getTime() / 1000),
 			})
 		},
 		onReset() {
 			this.$emit('range-change', { start: this.rangeMin, end: this.rangeMax })
 		},
 	},
+}
+
+function startOfDay(timestamp) {
+	const d = new Date(timestamp * 1000)
+	d.setHours(0, 0, 0, 0)
+	return d
+}
+
+function endOfDay(timestamp) {
+	const d = new Date(timestamp * 1000)
+	d.setHours(23, 59, 59, 999)
+	return d
 }
 </script>
 
@@ -107,5 +149,13 @@ export default {
 	border-radius: var(--border-radius-large);
 	background-color: var(--color-main-background);
 	box-shadow: 0 0 10px var(--color-box-shadow);
+}
+
+.date-range-filter-picker {
+	width: 160px;
+}
+
+.date-range-filter-separator {
+	color: var(--color-text-maxcontrast);
 }
 </style>
