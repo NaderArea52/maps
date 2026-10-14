@@ -34,6 +34,7 @@
 
 <script>
 import { NcButton, NcDateTimePicker } from '@nextcloud/vue'
+import optionsController from '../../optionsController.js'
 
 export default {
 	name: 'DateRangeFilter',
@@ -102,22 +103,25 @@ export default {
 			if (!date) {
 				return
 			}
-			this.$emit('range-change', {
-				start: Math.floor(startOfDay(date.getTime() / 1000).getTime() / 1000),
-				end: this.end,
-			})
+			this.changeRange(Math.floor(startOfDay(date.getTime() / 1000).getTime() / 1000), this.end)
 		},
 		onEndChange(date) {
 			if (!date) {
 				return
 			}
-			this.$emit('range-change', {
-				start: this.start,
-				end: Math.floor(endOfDay(date.getTime() / 1000).getTime() / 1000),
-			})
+			this.changeRange(this.start, Math.floor(endOfDay(date.getTime() / 1000).getTime() / 1000))
 		},
 		onReset() {
-			this.$emit('range-change', { start: this.rangeMin, end: this.rangeMax })
+			this.changeRange(this.rangeMin, this.rangeMax)
+		},
+		changeRange(start, end) {
+			// remember the selection, a bound at the edge of the data is saved as open ('')
+			// so data added later (e.g. new device points) is still shown after a page reload
+			optionsController.saveOptionValues({
+				dateFilterStart: start <= this.rangeMin ? '' : String(start),
+				dateFilterEnd: end >= this.rangeMax ? '' : String(end),
+			})
+			this.$emit('range-change', { start, end })
 		},
 	},
 }

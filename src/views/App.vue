@@ -240,6 +240,16 @@ import { generateUrl } from '@nextcloud/router'
 import { placeFileOrFolder } from '../utils/photoPicker.ts'
 import { getClient } from '@nextcloud/files/dav'
 
+// the calendar time filter remembers its last selection (the slider does not)
+function getSavedCalendarTimestamp(key, defaultValue) {
+	const optionValues = optionsController.optionValues
+	if (optionValues.displaySlider !== 'true' || optionValues.timeFilterMode !== 'calendar') {
+		return defaultValue
+	}
+	const timestamp = parseInt(optionValues[key])
+	return isNaN(timestamp) ? defaultValue : timestamp
+}
+
 export default {
 	name: 'App',
 
@@ -273,8 +283,8 @@ export default {
 			// slider
 			sliderEnabled: optionsController.optionValues.displaySlider === 'true',
 			timeFilterMode: optionsController.optionValues.timeFilterMode === 'calendar' ? 'calendar' : 'slider',
-			sliderStart: 0,
-			sliderEnd: moment().unix(),
+			sliderStart: getSavedCalendarTimestamp('dateFilterStart', 0),
+			sliderEnd: getSavedCalendarTimestamp('dateFilterEnd', moment().unix()),
 			// action history
 			lastActions: [],
 			lastCanceledActions: [],
