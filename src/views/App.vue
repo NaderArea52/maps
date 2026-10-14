@@ -7,6 +7,7 @@
 		<MapsNavigation
 			@toggle-trackme="onToggleTrackme"
 			@toggle-slider="onToggleSlider"
+			@change-time-filter-mode="timeFilterMode = $event"
 			@register-geo-link="onRegisterGeoLink">
 			<template #items>
 				<AppNavigationFavoritesItem
@@ -133,6 +134,7 @@
 					:devices="displayedDevices"
 					:devices-enabled="devicesEnabled"
 					:slider-enabled="sliderEnabled"
+					:time-filter-mode="timeFilterMode"
 					:slider-start-timestamp="sliderStart"
 					:slider-end-timestamp="sliderEnd"
 					:min-data-timestamp="minDataTimestamp"
@@ -270,6 +272,7 @@ export default {
 			activeSidebarTab: '',
 			// slider
 			sliderEnabled: optionsController.optionValues.displaySlider === 'true',
+			timeFilterMode: optionsController.optionValues.timeFilterMode === 'calendar' ? 'calendar' : 'slider',
 			sliderStart: 0,
 			sliderEnd: moment().unix(),
 			// action history
@@ -353,11 +356,23 @@ export default {
 			) || 0
 		},
 		maxDataTimestamp() {
-			return Math.max(
-				this.maxPhotoTimestamp,
-				this.maxFavoriteTimestamp,
-				this.maxTrackTimestamp,
-			) || moment().unix()
+			// only use data types that actually have dates, empty ones would default to "now"
+			const maxTimestamps = []
+			if (this.photoDates.length > 0) {
+				maxTimestamps.push(this.maxPhotoTimestamp)
+			}
+			if (this.favoritesDates.length > 0) {
+				maxTimestamps.push(this.maxFavoriteTimestamp)
+			}
+			if (this.trackDates.length > 0) {
+				maxTimestamps.push(this.maxTrackTimestamp)
+			}
+			if (this.maxDevicesTimestamp !== null) {
+				maxTimestamps.push(this.maxDevicesTimestamp)
+			}
+			return maxTimestamps.length > 0
+				? Math.max(...maxTimestamps)
+				: moment().unix()
 		},
 		photoDates() {
 			return this.photos.filter(p => { return p.dateTaken !== null }).map(p => p.dateTaken)
@@ -425,6 +440,17 @@ export default {
 				}
 				return min
 			}, moment().unix() + 100)
+		},
+		maxDevicesTimestamp() {
+			return this.devices.reduce((max, device) => {
+				if (device.enabled && device.historyEnabled && device.points?.length > 0) {
+					const lastTimestamp = device.points[device.points.length - 1].timestamp
+					if (lastTimestamp) {
+						max = max === null ? lastTimestamp : Math.max(max, lastTimestamp)
+					}
+				}
+				return max
+			}, null)
 		},
 		// displayed data
 		displayedTracks() {

@@ -25,6 +25,26 @@
 						{{ window.t('maps', 'Display time filter slider') }}
 					</NcCheckboxRadioSwitch>
 					
+					<div v-if="optionValues.displaySlider === 'true'"
+						class="maps-settings-time-filter-mode">
+						<NcCheckboxRadioSwitch
+							type="radio"
+							name="maps-time-filter-mode"
+							value="slider"
+							:model-value="timeFilterMode"
+							@update:model-value="onTimeFilterModeChange">
+							{{ window.t('maps', 'Slider') }}
+						</NcCheckboxRadioSwitch>
+						<NcCheckboxRadioSwitch
+							type="radio"
+							name="maps-time-filter-mode"
+							value="calendar"
+							:model-value="timeFilterMode"
+							@update:model-value="onTimeFilterModeChange">
+							{{ window.t('maps', 'Calendar') }}
+						</NcCheckboxRadioSwitch>
+					</div>
+					
 					<p class="maps-settings-text">
 						{{ trueSizeText }}
 					</p>
@@ -86,6 +106,7 @@ export default {
 		'toggle-trackme',
 		'register-geo-link',
 		'toggle-slider',
+		'change-time-filter-mode',
 	],
 
 	data() {
@@ -97,6 +118,9 @@ export default {
 	},
 	
 	computed: {
+		timeFilterMode() {
+			return this.optionValues.timeFilterMode === 'calendar' ? 'calendar' : 'slider'
+		},
 		trueSizeText() {
 			return window.t('maps', 'Keep in mind that map projections always distort sizes of countries. The standard Mercator projection is particularly biased. Read more at:')
 		}
@@ -113,11 +137,21 @@ export default {
 			optionsController.saveOptionValues({ displaySlider: checked ? 'true' : 'false' })
 			this.$emit('toggle-slider', checked)
 		},
+		onTimeFilterModeChange(mode) {
+			this.optionValues.timeFilterMode = mode
+			optionsController.saveOptionValues({ timeFilterMode: mode })
+			this.$emit('change-time-filter-mode', mode)
+		},
 	},
 }
 </script>
 
 <style scoped lang="scss">
+.maps-settings-time-filter-mode {
+	margin-top: -8px;
+	padding-left: 28px;
+}
+
 .loading-icon {
 	margin-top: 16px;
 }

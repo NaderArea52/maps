@@ -129,7 +129,13 @@
 				</template>
 			</template>
 		</div>
-		<Slider v-show="sliderEnabled"
+		<Slider v-show="sliderEnabled && timeFilterMode !== 'calendar'"
+			:start="sliderStartTimestamp"
+			:end="sliderEndTimestamp"
+			:range-min="minDataTimestamp"
+			:range-max="maxDataTimestamp"
+			@range-change="$emit('slider-range-changed', $event)" />
+		<DateRangeFilter v-if="sliderEnabled && timeFilterMode === 'calendar'"
 			:start="sliderStartTimestamp"
 			:end="sliderEndTimestamp"
 			:range-min="minDataTimestamp"
@@ -167,6 +173,7 @@ import '@raruto/leaflet-elevation/dist/leaflet-elevation'
 import '@raruto/leaflet-elevation/dist/leaflet-elevation.css'
 
 import Slider from '../components/map/Slider.vue'
+import DateRangeFilter from '../components/map/DateRangeFilter.vue'
 import SearchControl from '../components/map/SearchControl.vue'
 import HistoryControl from '../components/map/HistoryControl.vue'
 import RoutingControl from '../components/map/routing/RoutingControl.vue'
@@ -184,7 +191,7 @@ import PhotoSuggestionsLayer from './map/PhotoSuggestionsLayer.vue'
 export default {
 	name: 'Map',
 	components: {
-		Slider, HistoryControl, SearchControl, RoutingControl, FavoritesLayer,
+		Slider, DateRangeFilter, HistoryControl, SearchControl, RoutingControl, FavoritesLayer,
 		PhotosLayer, PhotoSuggestionsLayer, TracksLayer, DevicesLayer, ContactsLayer,
 		PlaceContactPopup, ClickSearchPopup, PoiMarker,
 	},
@@ -213,6 +220,7 @@ export default {
 		devices: { type: Array, required: true },
 		devicesEnabled: { type: Boolean, required: true },
 		sliderEnabled: { type: Boolean, required: true },
+		timeFilterMode: { type: String, default: 'slider' },
 		sliderStartTimestamp: { type: Number, required: true },
 		sliderEndTimestamp: { type: Number, required: true },
 		minDataTimestamp: { type: Number, required: true },
