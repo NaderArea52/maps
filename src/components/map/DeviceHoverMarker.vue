@@ -70,11 +70,15 @@ export default {
 
 	watch: {
 		point: {
-			handler(newPoint) {
+			handler(newPoint, oldPoint) {
 				if (this.marker) {
 					this.marker.setLatLng([newPoint.lat, newPoint.lng])
-					this.marker.setIcon(this.icon)
-					this.marker.setTooltipContent(this.$el) // Force update DOM
+					// only replace the icon element when needed, replacing it under the mouse breaks hover events
+					if (!oldPoint || newPoint.color !== oldPoint.color) {
+						this.marker.setIcon(this.icon)
+					}
+					// show the info of the newly hovered point
+					this.marker.openTooltip()
 				}
 			},
 			deep: true
@@ -82,9 +86,9 @@ export default {
 	},
 
 	mounted() {
-		this.marker = L.marker([this.point.lat, this.point.lng], { 
-			icon: this.icon, 
-			interactive: false 
+		// interactive (like in 1.6.0) so hovering the point opens its tooltip
+		this.marker = L.marker([this.point.lat, this.point.lng], {
+			icon: this.icon,
 		}).addTo(this.map)
 
 		this.marker.bindTooltip(this.$el, this.tooltipOptions)

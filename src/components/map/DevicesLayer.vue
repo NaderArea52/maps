@@ -1,5 +1,8 @@
 <template>
 	<div style="display: none;">
+		<DeviceHoverMarker v-if="hoverPoint"
+			:point="hoverPoint"
+			:map="map" />
 		<LHeatMap v-if="points.length >= 2500"
 			ref="devicesHeatMap"
 			:map="map"
@@ -14,6 +17,7 @@ import { isComputer } from '../../utils.js'
 import { binSearch, isPublic } from '../../utils/common.js'
 import moment from '@nextcloud/moment'
 import LHeatMap from './LHeatMap.vue'
+import DeviceHoverMarker from './DeviceHoverMarker.vue'
 import optionsController from '../../optionsController.js'
 
 const DEVICE_MARKER_VIEW_SIZE = 40
@@ -22,6 +26,7 @@ export default {
 	name: 'DevicesLayer',
 	components: {
 		LHeatMap,
+		DeviceHoverMarker,
 	},
 
 	props: {
@@ -38,6 +43,7 @@ export default {
 				blur: 10,
 				gradient: { 0.4: 'blue', 0.65: 'lime', 1: 'red' },
 			},
+			hoverPoint: null,
 		}
 	},
 
@@ -49,6 +55,9 @@ export default {
 	computed: {
 		displayedDevices() {
 			return this.devices.filter(d => d.enabled && d.points && d.points.length > 0);
+		},
+		enabledDevices() {
+			return this.devices.map(d => d.enabled);
 		},
 		points() {
 			return this.devices.reduce((pts, device) => {
@@ -71,6 +80,9 @@ export default {
 
 	watch: {
 		displayedDevices: { handler: 'renderDevices', deep: true },
+		enabledDevices() {
+			this.hoverPoint = null;
+		},
 		start: 'renderDevices',
 		end: 'renderDevices',
 	},
@@ -131,7 +143,7 @@ export default {
 					</div>
 				`, { sticky: true, className: 'leaflet-marker-device-tooltip', direction: 'top', offset: L.point(0, 0) });
 
-				marker.on('mouseover', () => this.$emit('point-hover', { ...device.points[device.points.length - 1], color, user_agent: device.user_agent }));
+				marker.on('mouseover', () => this.onPointHover({ ...device.points[device.points.length - 1], color, user_agent: device.user_agent }));
 				marker.on('click', () => this.$emit('click', device));
 				marker.on('contextmenu', (e) => this.showDevicePopup(e, device));
 
@@ -191,9 +203,14 @@ export default {
 			}, { minDist: 40000000, hoverPoint: null });
 
 			if (closestPoint.hoverPoint) {
-				this.$emit('point-hover', { ...closestPoint.hoverPoint, color, user_agent: device.user_agent });
+				this.onPointHover({ ...closestPoint.hoverPoint, color, user_agent: device.user_agent });
 			}
-		}
+		},
+
+		onPointHover(point) {
+			this.hoverPoint = point;
+			this.$emit('point-hover', point);
+		},
 	},
 }
 </script>
